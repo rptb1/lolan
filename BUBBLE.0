@@ -1,0 +1,36 @@
+( Bubble sort )
+
+decimal
+
+0 variable s-base
+
+: ndx   ( num...addr )  ( find element num from s-base )
+   2* s-base @ +
+;
+
+: sswap  ( num... )   ( swap element num and num+1 )
+   ndx dup @          ( element num )
+   over 2+ @          ( element num+1 )
+   3 pick !           ( num<- num+1 )
+   swap 2+ !          ( num+1<- num )
+;
+
+
+: sscan   ( len... )  ( scan list once )
+   0 swap    ( swapping flag )
+   0 do
+      i ndx dup @
+      swap 2+ @
+      > if i sswap drop -1 endif  ( set swap flag )
+   loop
+;
+
+: sort   ( len\base... )  ( sort array )
+   s-base !
+   begin
+      dup sscan
+   0= until
+   drop
+;
+
+end

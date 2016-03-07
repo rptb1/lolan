@@ -1,0 +1,50 @@
+( Core routines, fourth batch )
+
+( Numeric conversion )
+
+0 variable hld    ( address of next char )
+
+: <#   ( n...n\n )       ( Start numberic conversion of n )
+   dup abs               ( duplicate for <sign> )
+   [ pad 1- ] literal    ( convert under pad )
+   dup 0 swap c!         ( terminate string )
+   1- hld ! ;            ( set up pointer )
+
+: #>   ( n1\n2...addr )  ( End numeric conversion )
+   drop drop hld @ 1+ ;
+
+
+: #    ( n...n/10 )      ( convert digit to hld )
+   (#) hld @ c!  -1 hld +! ;
+
+
+: hold ( c... )          ( Insert char in conversion )
+   hld @ c! -1 hld +! ;
+
+
+: sign ( n1\n2...0\n2 )  ( Insert sign if needed )
+   >r  0< if 45 hold endif
+   0 r> ;
+
+
+: #s   ( n1...0 )        ( Convert rest of number )
+   begin   #  dup 0= until ;
+
+
+( Protect and place new definitions in core )
+last fence !
+
+core hidden
+
+: ?extend
+   [compile] forget
+   cr ." Load core extension now?  (Y/N)"
+   key dup \ Y\ = swap \ y\ = or if
+      4 load>
+   else
+      32 word         ( discard filename )
+      12 emit vlist
+   endif ;
+
+?extend ?extend extend.0
+end

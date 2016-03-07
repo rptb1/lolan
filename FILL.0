@@ -1,0 +1,40 @@
+( Line fill routine )
+
+exvec: fill
+
+: fpoint   ( y\x... ) ( Fill point, checking adjacent )
+   2dup plot-at
+   >r 2- r> 2dup test-at 0= if
+      2dup fill endif
+   >r 4 + r> 2dup test-at 0= if
+      fill else drop drop endif
+;
+
+
+: lfill   ( y\x... ) ( Fill left until point found )
+   begin
+     2dup test-at 0= while
+      2dup fpoint
+      2-
+   repeat
+   drop drop ;
+
+
+: rfill   ( y\x... ) ( As above right )
+   begin
+      2dup test-at 0= while
+      2dup fpoint
+      2+
+   repeat
+   drop drop ;
+
+
+: (fill)   ( y\x... )  ( Fill left and right )
+   ?escape
+   2dup lfill
+   2+ rfill
+;
+
+assign fill to-do (fill)
+
+end

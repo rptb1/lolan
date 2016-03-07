@@ -1,0 +1,77 @@
+( Extra definitions )
+( 1.0   30 Aug 86 )
+vocab extra
+
+( Concatenates string s2 to s1. No checks made )
+: str+   ( s1\s2... )
+   swap strlen drop         ( end of s1 )
+   over strlen 1+           ( get len s2 )
+   swap drop ldir           ( discard end s2, move )
+;
+
+( Calculate offset from origin )
+: +origin  ( offset...addr )
+   origin + ;
+
+( Swap high and low bytes of top number )
+hex
+: ><       ( hl...lh )
+   drop [ 657C , 6F c, ] push-hl ;
+decimal
+
+( constant of ascii space )
+32 constant bl
+
+( Transmit space )
+hex
+: space    ( ... )
+   [ 203E , CD c, BB5A , ] ;
+
+( Transmit c spaces )
+: spaces   ( c... )
+   drop [ 45 c, 203E , CD c, BB5A , 10 c, -7 c, ] ;
+decimal
+
+( Print number in decimal )
+: dec.     ( n... )
+   base @ swap
+   10 base ! . base ! ;
+
+( Print number in hex )
+: h.       ( n... )
+   base @ swap
+   16 base ! . base ! ;
+
+( Set expansion string )
+hex
+: key"  ( string" )   ( key... )
+   22 word dup strlen swap drop   ( key\string\len )
+   drop [ 4D c, ] swap drop [ 45 c, ]
+   drop [ CD c, BB0F , ] ;     ( Call KM SET EXPAND )
+decimal
+
+( Leave larger of two numbers )
+: max    ( n1\n2...max )
+   2dup > if drop else swap drop endif ;
+
+( Leave smaller of two numbers )
+: min    ( n1\n2...min )
+   2dup < if drop else swap drop endif ;
+
+( No operation )
+: noop ;
+
+( Logical NOT )
+hex
+: not    ( n1...not n1 )
+   drop [ 2F7C , 7D67 , 6F2F , ] push-hl ;
+decimal
+
+( Warm start )
+: warm   ( ... )
+   decimal abort ;
+
+
+end-voc
+extra hidden
+end

@@ -1,0 +1,118 @@
+( Line editor )
+
+vocab editor
+
+hex
+
+: cfill           ( length\byte\addr ... ) 
+  2dup !               ( store first byte ) 
+  swap drop dup 1+ rot 1- ldir ; 
+
+
+create cat  ( ... )  ( Produce file catalogue. Uses inbuff. )
+   5BED , inbuff , C3 c, BC9B ,
+decimal
+
+( Editor commands ) 
+
+: >pad   ( line... )  ( Copy line to pad )
+   line ! lineaddr pad 64 ldir ; 
+
+: lera  ( line... )  ( Erase line )
+   line !  0 lineaddr c! ;
+
+: pad>   ( line... )  ( Copy pad to line )
+   line ! pad lineaddr 64 ldir ; 
+
+
+: rop-len  ( calculate length of rest of buffer ) 
+   #lines @ line @ - 64 * ;
+
+: ldel  ( line... )  ( delete line, move up, line is lost )
+   line !  lineaddr dup 64 + swap rop-len 64 - ldir
+   #lines @ 1- lera ;
+ 
+: lins  ( line... )  ( insert blank line before <line> )
+   #lines @ 1- line ! lineaddr 63 +      ( end of buffer addr )
+   swap line ! dup 64 - swap rop-len 64 - lddr 
+   line @ lera ;
+
+
+: ins  ( line... ) ( insert some lines before <line> )
+   line !
+   begin
+      line @ . tab query ( get line from user )
+      tib c@ tib 1+ c@ xor 255 - while ( escape? )
+      line @ dup lins   ( insert blank line )
+      dup [compile] p   ( put in queried line )
+      1+ line !
+   repeat
+   0 tib c!
+;
+
+: del ( l1\l2... ) ( delete l1 to l2 inclusive )
+   over - 1+ 0 do
+   dup ldel loop ;
+
+
+: save    ( name ) ( firstline\lastline ... ) 
+  openout
+  1+ swap do 
+     r@ write 
+  loop 
+  closeout 
+ ; 
+
+: ll ( line... ) ( Continuous list from line )
+   line !
+   begin ?escape
+      line @ list   ( list lines )
+   again
+;
+
+
+: clb   ( clear buffers )
+   ." Clear buffers: Sure? (Y/any key)"
+   key dup \ y\ = swap \ Y\ = or if
+      empty-buffers cr ." Cleared." cr
+   else
+      cr ." Preserved." cr
+   endif ;
+
+: fload  ( name )        ( open and load file )
+   closein openin 0 read 0 [compile] load ;
+
+: fread  ( name )         ( open and read whole file )
+   closein openin 0 read-the-lot ;
+
+: free  ( ... )     ( display free workspace. )
+   depth 2*         ( stack bytes )
+   stktop @ swap -  ( subtract from stack top )
+   here - .         ( subtract here and print )
+   ."  bytes free in workspace." cr
+;
+
+( Browse through editor buffer )
+
+: browse  ( start line... )
+   begin
+      2 4 emit emit dup list
+      key
+      dup 252 = 0= while
+      dup 240 = if swap 10 - swap endif
+          241 = if 10 + endif
+      dup 0< if drop 0
+      else dup #lines @ 17 - > if
+        drop #lines @ 17 - endif
+      endif
+   repeat
+   drop drop
+;
+
+
+decimal
+
+end-voc
+editor hidden
+( DISC SYSTEMS ONLY )
+1 load> external.0

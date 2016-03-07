@@ -1,0 +1,48 @@
+( LOLAN ASSEMBLER )
+
+decimal
+: bin   ( ... )  ( Convert base to binary )
+   2 base ! ;
+
+: case  ( n1\n2...n1 )  ( Preserving = if )
+   compile over  compile =  [compile] if ; 9 status
+
+: endcase
+   [compile] exit [compile] endif ; 9 status
+
+: reg-err  ( Register error )
+   ."*** ASSEMBLER ERROR. Illegal register. ***" cr
+   abort ;
+
+: ?reg     ( Issue error if not = )
+   = ifnot reg-err endif ;
+
+( Register constants )
+( -2: single,  -3: double,  -4: indirect )
+( -5: immediate number )
+
+: a, 7 -2 ;  : b, 0 -2 ;  : c, 1 -2 ;  : d, 2 -2 ;
+: e, 3 -2 ;  : h, 4 -2 ;  : l, 5 -2 ;
+
+: bc, 0 -3 ;  : de, 1 -3 ;  : hl, 2 -3 ;  : sp, 3 -3 ;
+: af, 3 -3 ;
+
+: (bc),  0 -4 ;  : (de), 1 -4 ;  : (hl), 2 -4 ;
+: (+ix), 3 -4 ;  : (+iy), 4 -4 ;
+
+: #, -5 ;
+
+
+( Assembler words )
+hex
+
+: adc_a,
+   -2 case  88 or c, endcase     ( r )
+   -5 case  CE c, c, endcase     ( n )
+   -4 case    ( indirect )
+      2 case  8E c, endcase      ( (hl)
+      3 case  8EDD , c,          ( (+ix)
+      4 case  8EFD , c,          ( (+iy)
+      reg-err
+   endcase
+   reg-err ;

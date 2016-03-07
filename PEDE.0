@@ -1,0 +1,91 @@
+( PROTOPEDE )
+
+vocab pede
+
+( Sound routines. LOAD ONLY ONCE )
+create sound-reset
+  hex C3 c, BCA7 ,
+
+
+: q-block stktop @ ;
+
+1 variable soundon
+
+
+decimal
+
+: envelope    ( number\type\ <pt\ss\sc> \N ... )
+   dup q-block c!         ( number of sections )
+   3 * 1+ 1 do
+     q-block r@ + c!      ( store next stack to block )
+   loop
+   if        ( amplitude envelope )
+     drop [ hex 7D c, 21 c, q-block , C3 c, BCBC , ]
+   else
+     drop [ 7D c, 21 c, q-block , C3 c, BCBF , ]
+   endif ;
+
+
+( Sound queue )
+hex
+
+: sound-q      ( chan\env\ent\period\noise\vol\length ... )
+  drop [ 22 c, q-block 7 + , ]   ( duration )
+  drop [ 327D , q-block 6 + , ]  ( volume )
+  drop [ 327D , q-block 5 + , ]  ( tone period )
+  drop [ 22 c,  q-block 3 + , ]  ( tone period )
+  drop [ 327D , q-block 2 + , ]  ( tone envelope )
+  drop [ 327D , q-block 1+  , ]  ( ampl envelope )
+  drop [ 327D , q-block , ]      ( channel status )
+  soundon @ if
+  [ hex 21 c, q-block , C3 c, BCAA , ] endif ;
+
+
+
+( Fast character system )
+hex
+
+: (fchar)   ( y\x\char-address ... )
+   drop [ E5 c, ] drop [ 45 c, ] drop [ 4D c, E1 c, ]
+   [ 050D ,      ( convert to logical coords )
+     E5 c, CB c, 20 c, 69 c, 26 c, 00 c, E5 c, D1 c, 29 c,
+     29 c, 19 c, 29 c, 29 c, 29 c, 29 c, 11 c, 00 c, C0 c,
+     19 c, 48 c, 06 c, 00 c, 09 c, D1 c, 06 c, 08 c, E5 c,
+     1A c, 77 c, 23 c, 13 c, 1A c, 77 c, 13 c, E1 c, C5 c,
+     01 c, 00 c, 08 c, 09 c, C1 c, 10 c, EF c, ] ;
+
+decimal
+
+
+0 variable sprites -2 allot
+
+( catterpillar segment )
+ hex 30 c, C0 c, 43 c, E0 c, 96 c, F0 c, B4 c, F0 c,
+     F0 c, F0 c, F0 c, F0 c, 70 c, E0 c, 30 c, C0 c,
+( wall )
+     FB c, FB c, FB c, FB c, F0 c, F0 c, FE c, FE c,
+     FE c, FE c, F0 c, F0 c, FB c, FB c, FB c, FB c,
+( mushroom )
+     03 c, 0C c, 52 c, 0E c, 0F c, 4B c, 2D c, 0F c,
+     07 c, 4A c, 10 c, 80 c, 10 c, 80 c, 10 c, 80 c,
+( pellet )
+     30 c, C0 c, 61 c, 68 c, D2 c, B4 c, C3 c, F0 c,
+     F0 c, 3C c, D2 c, B4 c, 61 c, 68 c, 30 c, C0 c,
+( blank space )
+     0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
+
+
+: char-addr  ( char ... addr ) ( find addr of char )
+   drop
+   [ 7D c, 2F c, 6F c,      ( ld a,l: cpl: ld l,a )
+     2929 , 2929 , 11 c, sprites , 19 c, ] push-hl ;
+
+
+: plot-char  ( char\y\x ... ) ( draw char )
+   rot char-addr (fchar) ;
+
+decimal
+
+
+
+1 load> pede.1

@@ -1,0 +1,114 @@
+( PROTOPEDE   Second batch )
+
+
+55 array xpede    55 array ypede
+
+0 variable map  798 allot
+0 variable lives
+0 variable score         200 variable hiscore
+0 variable level
+0 variable length
+0 variable head  0 variable tail
+0 variable xpos  0 variable ypos
+
+
+: delays  dup 0> if 50 * 0 do loop else drop endif ;
+
+: clear-map
+ [ hex 21 c, map , 11 c, map 1+ ,  ( ld hl,map: ld de,map+1 )
+   01 c, 31F , 36 c, FB c,        ( ld bc,799: ld {hl},space )
+   B0ED , ] ;                     ( ldir )
+
+
+: locate               ( y\x ... )
+   drop [ EB c, ] drop [ 63 c, C3 c, BB75 , ] ;
+decimal
+
+
+( place char on screen and in map )
+: place                ( char\y\x ... )
+   dup ifnot drop drop drop exit endif
+   2dup  swap 40 * + map + 41 -  ( find addr in map )
+   4 pick swap c!                 ( put char in map )
+   plot-char ;                   
+
+
+: map@      ( y\x ... char ) ( Fetch char from map )
+   swap  40 * + map + 41 - c@ ;
+
+
+: draw-border   ( ..for game to be played in )
+   41 1 do
+      254 1 r@ place  254 20 r@ place
+      129 0 0 r@ 10 * 100 + 0 13 20 sound-q   loop
+   20 2 do
+      254 r@ 1 place  254 r@ 40 place
+      132 0 0 200 r@ 5 * - 0 13 20  sound-q   loop
+;
+
+
+( Random number genorator )
+8374234 variable seed
+
+: rnd   [ hex CD c, BD0D , decimal ] push-hl  ( time )
+   seed @ 9823 * * 291 + dup @ xor dup seed ! swap mod ;
+
+
+
+: set-colours   ( ... )    ( Set game colours )
+   (.") [ hex 301C , 4040 , 311C , 1A1A ,
+     321C , 1616 , 331C , 1212 , 0 c, ] ;
+
+decimal
+
+
+( draw the pede )
+
+: clear-pede  ( ... )  ( Clear pede array to 0 )
+   50 0 do  0 r@ xpede !  0 r@ ypede !  loop ;
+
+: draw-pede   ( ... )
+   5 length !
+   clear-pede
+   5 0 do
+      16 r@ + dup   r@ xpede !       ( put pede into place )
+      10 dup        r@ ypede !
+      swap 255 rot rot place     ( draw it )
+      135 1 1 100 r@ 5 * - 0 15 0 sound-q
+      100 delays
+   loop
+   0 tail !  4 head !  20 xpos ! 10 ypos !  ;
+
+
+( Draw some food on the screen )
+: draw-food                 ( ... )
+   48 0 do
+      begin
+         18 rnd 2 + 38 rnd 2 +      ( random x,y )
+         2dup map@ 251 = 0= while  ( exit if space )
+         drop drop
+      repeat
+      253 rot rot place         ( draw the food )
+      135 2 0 0 3 12 0 sound-q
+      20 delays
+   loop ;
+
+
+( Draw thistles )
+
+: draw-thistles        ( ... )
+   level @  0 do       ( level=number of tablets )
+     begin
+         18 rnd 2 + 38 rnd 2 + ( random x,y )
+         2dup map@ 251 = 0=    ( space occupied )
+         3 pick 10 = or while  ( same line as pede )
+        drop drop
+     repeat
+     252 rot rot place       ( put thisle in place )
+     129 2 0 1000 r@ + 0 15 0 sound-q
+     5 delays       ( echo effect )
+     132 2 0 1000 r@ + 1+ 0 15 0 sound-q
+     40 delays
+   loop ;
+
+2 load> pede.2

@@ -1,0 +1,122 @@
+( LOLAN core routines ) 
+
+16 base !
+( Non-smudging colon, for recursion. )
+
+create r:  ( new word )  ( ... )
+  ] create ]           ( start compiling )
+    !csp [ C9 c,       ( structure check, end )
+
+r: r;  ( ... )   ( End definition )
+   ?csp C9 c,    ( check structures, ret )
+   [compile] [   ( stop compiling )
+   [ C9 c,  9 status   ( I,C )
+
+( Colon defining words )
+r: :   ( new word )  ( ... )
+   r: smudge r;
+
+r: ;   ( ... )    ( End definition )
+   [compile] r;
+   smudge        ( make word useable )
+r;  9 status        ( I,C )
+
+( Return stack )
+: >r   ( n... )   ( Move top item to return stack )
+   compile drop E5 c,
+      ; 9 status        ( I,C )
+
+: r>   ( ...n )   ( Move item from return stack )
+   E1 c, compile push-hl
+      ; 9 status        ( I,C )
+
+: r@   ( ...n )   ( Copy top item of return stack )
+   E1 c, E5 c, compile push-hl
+      ; 9 status        ( I,C )
+
+
+( Number bases )
+: hex    10 base ! ; 
+: decimal A base ! ;
+
+( Stack manipulation ) 
+: dup    ( n...n\n )
+   drop push-hl push-hl ; 
+: swap   ( n1\n2...n2\n1 )
+   drop [ EB c, ] drop [ EB c, ] push-hl [ EB c, ] 
+   push-hl ; 
+: over   ( n1\n2...n1\n2\n1 )
+   drop [ EB c, ] drop push-hl [ EB c, ] push-hl 
+   [ EB c, ] push-hl ; 
+: rot    ( n1\n2\n3...n2\n3\n1 )
+   drop [ E5 c, C1 c, ] drop [ EB c, ] drop 
+   [ EB c, ] push-hl [ C5 c, E1 c, ] push-hl [ EB c, ] 
+   push-hl ; 
+: 2dup   ( n1\n2...n1\n2\n1\n2 )
+   drop [ EB c, ] drop push-hl [ EB c, ] push-hl
+   [ EB c, ] push-hl [ EB c, ] push-hl ;
+: ?dup   ( n...n if n=0 ) ( n...n\n if n<>0 )
+   drop push-hl [ B57C , C8 c, ] push-hl ;
+
+
+( Extra arithmetic )
+: 2+  drop [ 2323 , ] push-hl ;
+: 2-  drop [ 2B2B , ] push-hl ;
+: 2*  drop [ 25CB , 14CB , ] push-hl ;
+: 2/  drop [ 2CCB , 1DCB , ] push-hl ;
+
+: <<   ( num\c...num*2^n )  ( Shift num left by c places )
+   drop [ 45 c, ] drop [ 25CB , 14CB , 10 c, -6 c, ]
+   push-hl ;
+
+: >>   ( num\c...num/2^n )  ( SIGNED shift num right by c )
+   drop [ 45 c, ] drop [ 2CCB , 1DCB , 10 c, -6 c, ]
+   push-hl ;
+
+: u>>  ( u\c...u>>c )       ( UNSIGNED shift right )
+   drop [ 45 c, ] drop [ 3CCB , 1DCB , 10 c, -6 c, ]
+   push-hl ;
+
+
+( Structure )
+( ?test if ... else ... endif/then )
+: if 
+   compile drop          ( pop ) 
+   7C c, B5 c,           ( ld a,h:  or l ) 
+   CA c, here 0 ,        ( jp z, <endif> ) 
+   1                     ( 1 is the code for <if> ) 
+      ; 9 status         ( I,C )
+
+: else 
+   C3 c, here 0 ,        ( jp <endif> ) 
+   >r [compile] endif    ( if false jumps here ) 
+   r> 1 ; 9 status       ( I,C )
+
+: then   ( equivelant to endif )
+   [compile] endif ; 9 status  ( I,C )
+
+: ifnot compile drop 7C c, B5 c, C2 c, here 0 , 
+   1 ; 9 status          ( I,C )
+
+: ?pairs   ( n1\n2... )  ( Cause structure error if n1<>n2 )
+   = ifnot struct-err endif ;
+
+
+( Loops ) 
+
+: begin        ( 0 marks <begin> )
+   here 0 ; 9 status     ( I,C )
+
+: again      ( begin ... again )
+   0 ?pairs C3 c, , ; 9 status   ( I,C )
+
+: until      ( used as:  begin ... ?test until )
+   0 ?pairs              ( check for <begin> )
+   compile drop          ( pop ) 
+   7C c, B5 c,           ( ld a,h:  or l ) 
+   CA c, ,               ( jp z,<begin> ) 
+; 9 status               ( I,C )
+
+: load>   closein openin dup read load ;
+
+1 load> core.1

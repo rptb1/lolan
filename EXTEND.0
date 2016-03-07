@@ -1,0 +1,59 @@
+( Graphic/text/sound extensions )
+vocab extension
+
+( TEXT VDU )
+
+hex
+create text-reset  ( ... )  ( Reset text VDU )
+  C3 c, BB4E ,
+
+
+: char   ( c... )  ( Display any char c )
+   drop [ 7D c, C3 c, BB5D , ] ;
+
+
+: copychar ( ...c )  ( Read char from cursor pos )
+   [ CD c, BB60 , 6F c, 0026 , ] push-hl ;
+
+
+: window   ( y1\y2\x1\x2... ) ( Set text window )
+   1A 5 0 do emit loop ;
+
+
+create cls  ( ... )  ( Clear current window )
+  C3 c, BB6C ,
+
+
+: locate   ( y\x... )  ( Move cursor to x,y )
+   drop [ EB c, ] drop [ 63 c, C3 c, BB75 , ] ;
+
+
+create cur-enable ( ... )
+  C3 c, BB7B ,
+
+create cur-disable ( ... )
+  C3 c, BB7E ,
+
+create cur-on   ( ... )
+  C3 c, BB81 ,
+
+create cur-off  ( ... )
+  C3 c, BB84 ,
+
+
+: pen  ( ink... )  ( Set text pen )
+   drop [ 7D c, C3 c, BB90 , ] ;
+
+: paper ( ink... )  ( Set text paper )
+   drop [ 7D c, C3 c, BB96 , ] ;
+
+
+: stream  ( str... )  ( Set text stream )
+   drop [ 7D c, C3 c, BBB4 , ] ;
+
+: swap-streams  ( str1\str2... )  ( Swap text streams )
+   drop [ 45 c, ] drop [ 4D c, C3 c, BBB7 , ] ;
+
+decimal
+
+1 load> extend.1

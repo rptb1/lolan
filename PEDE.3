@@ -1,0 +1,40 @@
+( PROTOPEDE  4th batch )
+
+: instruct              ( ... )
+   1 4 emit emit
+   ." These are the instructions." cr
+   ." They aren't finished yet so it's" cr
+   ." not worth reading them yet." cr
+   clear-keys key drop ;
+
+
+decimal
+( Set up the computer for this game )
+
+: setup                   ( ... )
+   sound-reset
+   1 1 1 -2 100 1 envelope
+   1 0 1 2 100 1  envelope
+   2 1 1 -1 15 1  envelope
+   2 0 1 5 25 1 -5 25 2 envelope
+  3 0 1 -1 200 30 0 1 2 envelope
+;
+
+
+( MAIN GAME ENTRY POINT )
+
+: game            ( ... ! )
+   setup
+   begin
+     instruct
+     get-ready
+     play
+     score @ hiscore @ > if
+       10 13 locate ." NEW HIGH SCORE"
+      score @ hiscore ! 10000 delays endif
+   again ;
+
+decimal
+
+end-voc
+end

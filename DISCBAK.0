@@ -1,0 +1,133 @@
+( Full Disc Backup )
+
+vocab discbackup
+
+( Variable with names of READ SECTOR and WRITE SECTOR )
+hex
+8584 variable bios
+
+0 variable sread-vec  1 allot   ( Far address )
+0 variable swrite-vec 1 allot
+
+( Error condition: No disc ROM )
+: no-rom  ( aborts )
+   ." *** ERROR. No disc ROM present. ***" cr
+   abort ;
+
+( Fill in far address vectors )
+: init-sector  ( ... )
+   [ 21 c, bios , CD c, BCD4 ,
+     D2 c, ' no-rom 1+ ,        ( Error if no disc ROM )
+     22 c, sread-vec ,  79 c, 32 c, sread-vec 2 + ,
+     21 c, bios 1+ , CD c, BCD4 ,
+     D2 c, ' no-rom 1+ ,        ( Error as above )
+     22 c, swrite-vec ,  79 c, 32 c, swrite-vec 2 + ,
+   ] ;
+
+init-sector
+
+( Read sector from disc )
+( N.B. drive 00 is A. drive 01 is B. )
+
+: read-sector   ( addr\track\sector\drive... )
+   drop [ 5D c, ] drop [ 4D c, ] drop [ 55 c, ]
+   drop [ DF c, sread-vec , ] ;
+
+( Write sector to disc )
+
+: write-sector  ( addr\track\sector\disc... )
+   drop [ 5D c, ] drop [ 4D c, ] drop [ 55 c, ]
+   drop [ DF c, swrite-vec , ] ;
+
+
+( Cassette read/write routines )
+   ( status: 0=break  1=overrun  2=CRC error  255=OK )
+
+: cas-write  ( addr\length\sync...status )
+   drop [ 7D c, ] drop [ EB c, ] drop
+   [ CD c, BC9E ,           ( Call CAS WRITE )
+     0026 , 6F c, 0230 ,    ( ld h,0: ld l,a: jr nc,+2 )
+     FF2E , ] push-hl ;     ( ld l,-1: stack )
+
+
+: cas-read    ( addr\length\sync... )
+   drop [ 7D c, ] drop [ EB c, ] drop
+   [ CD c, BCA1 ,           ( Call CAS READ )
+     0026 , 6F c, 0230 ,    ( ld h,0: ld l,a: jr nc,+2 )
+     FF2E , ] push-hl ;     ( ld l,-1: stack )
+
+
+( Set cassette speed )
+
+: set-speed   ( zero length\comp... )
+   drop [ 7D c, ] drop [ CD c, BC68 , ] ;
+
+
+( BACKUP DISC )
+
+41 variable sector1  ( First sector number )
+decimal
+9  variable #sector  ( Number of sectors/track )
+
+
+( Read/write track into/from block )
+
+: read-track   ( block\track...end of block )
+   sector1 @ dup #sector @ + swap do
+     over over r@ 0 read-sector
+     swap 512 + swap            ( move to next sector )
+   loop drop ;
+
+: write-track  ( block\track...end of block )
+   sector1 @ dup #sector @ + swap do
+     over over r@ 0 write-sector
+     swap 512 + swap            ( move to next sector )
+   loop drop ;
+
+
+: maxtrack 4 ;     ( number of tracks/block )
+: bl/disc  [ 40 maxtrack / ] literal ;  ( blocks/disc )
+: blocksz  maxtrack #sector @ 512 * * ; ( size of block )
+
+: read-block  ( addr\block... )
+   maxtrack *  dup maxtrack + swap do
+      r@ read-track
+   loop drop ;
+
+: write-block  ( addr\block... )
+   maxtrack *  dup maxtrack + swap do
+      r@ write-track
+   loop drop ;
+
+: save-block ( addr\block... )
+   blocksz swap cas-write
+   dup 255 = ifnot cr ." Cassette writing error: " . cr
+      abort endif ;
+
+: load-block ( addr\block... )
+   blocksz swap cas-read
+   dup 255 = ifnot cr ." Cassette reading error." . cr
+      abort endif ;
+
+: load-label   here 100 -1 cas-read here print cr ;
+
+: save-label ( label )
+   -1 word 100 -1 cas-write ;
+
+end-voc
+discbackup hidden
+
+: discbak ( label )
+   save-label
+   bl/disc 0 do
+      ." Writing block: " r@ . 13 emit
+      here r@ read-block
+      here r@ save-block
+   loop ;
+
+: discld     ." Disc label: " load-label
+   bl/disc 0 do    ." Loading block: " r@ . 13 emit
+      here r@ load-block
+      here r@ write-block   loop ;
+
+end

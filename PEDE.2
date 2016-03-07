@@ -1,0 +1,128 @@
+( PROTOPEDE  3rd batch )
+
+( Reset the playing area and pede )
+
+: reset-play
+   1 4 emit emit        ( mode 1 )
+   clear-map  set-colours
+   draw-border  draw-pede
+   draw-food    draw-thistles ;
+
+
+( Reprint the score etc )
+: update-score  22 2 locate ." Score: " score @ .
+   22 20 locate ." Level: " level @ .
+   22 30 locate ." Lives: " lives @ .
+   24 20 locate ." Hi-score: " hiscore @ . ;
+
+
+
+: wrap    ( index...legal index )    ( ..around pede array )
+   dup 1+ length @ > if
+      drop 0 endif ;
+
+
+
+( Draw head of pede and store )
+
+: draw-head             ( y\x ... )
+   head @ 1+ wrap head !      ( move head pointer )
+   2dup 255 rot rot place     ( draw head )
+   head @ xpede !             ( remember this pos )
+   head @ ypede !
+;
+
+
+( Remove the tail of the pede )
+
+: remove-tail            ( ... )
+   tail @
+   251  over ypede @
+   3 pick  xpede @  place  1+ wrap tail !
+;
+
+
+( Move the pede according to the keys )
+
+: move-pede                ( key ... )
+   dup \ z\ = swap dup \ a\ = rot -
+   ypos @ + dup ypos ! swap
+   dup \ /\ = swap 92 = -
+   xpos @ + dup xpos !
+   remove-tail  2dup map@ >r
+   draw-head    r> ;               
+
+
+: clear-keys   ( ... )   ( clear keyboard buffer )
+   begin ?key 0= until ;
+
+: lose-life   ( ... ) ( and make lots of noise about it )
+    135 0 2 400 0 15 50 sound-q  300 delays
+    length @ 0 do
+      ?escape
+    251  tail @ ypede @
+         tail @ xpede @  place
+     5 score +!  update-score
+     tail @ 1+ wrap tail !   ( move through pede )
+     129 2 0 150 0 13 0 sound-q
+    loop    -1 lives +! ;
+
+
+: +length  
+   length @ 1+ dup length !
+   52 > ifnot 0
+   else    ( move up one level! )
+      10 10 locate ." *** BONUS: 1000 ***"     
+      3 0 do
+         1 0 3 478 0 15 100 sound-q
+         2 0 3 379 0 15 100 sound-q
+         4 0 3 319 0 15 100 sound-q
+      loop
+      1 level +!   5000 delays 5000 delays
+      1000 score +!  1
+   endif ;
+
+
+: check-food             ( food-char ... ok flag )
+   dup 251 = if drop 0 exit endif   ( space )
+   dup 253 = if drop +length exit endif  ( food )
+   drop lose-life 1 ;          ( anything else )
+
+
+0 variable lastkey
+
+( Get key if pressed or use lastkey )
+
+: get-key  ?key dup
+   if dup lastkey !  else drop lastkey @ endif ;
+
+
+( Main play loop )
+
+: play    ( ... )
+   begin
+      reset-play
+      update-score
+      92 lastkey !
+      clear-keys          ( empty key buffer )
+      begin
+         40 level @ 2* - delays
+         get-key        ( changes key if pressed )
+         move-pede
+         check-food
+      until
+      lives @ 1- 0<
+   until ;
+
+( Get ready for a game )
+
+: get-ready               ( ... )
+  0 score !  3 lives !  
+  1 4 emit emit           ( mode 1 )
+  10 8 locate ." Level of play? (0 to 9)"
+  12 8 locate ." Level 0 is really easy"
+  begin 
+    key 48 - dup 10 u< 
+  until  2* level ! ;
+
+3 load> pede.3

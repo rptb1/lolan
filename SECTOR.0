@@ -1,0 +1,48 @@
+( Full Disc Backup )
+
+vocab sector
+
+( Variable with names of READ SECTOR and WRITE SECTOR )
+hex
+8584 variable bios
+
+0 variable sread-vec  1 allot   ( Far address )
+0 variable swrite-vec 1 allot
+
+( Error condition: No disc ROM )
+: no-rom  ( aborts )
+   ." *** ERROR. No disc ROM present. ***" cr
+   abort ;
+
+
+( Fill in far address vectors )
+: init-sector  ( ... )
+   [ 21 c, bios , CD c, BCD4 ,
+     D2 c, ' no-rom 1+ ,        ( Error if no disc ROM )
+     22 c, sread-vec ,  79 c, 32 c, sread-vec 2 + ,
+     21 c, bios 1+ , CD c, BCD4 ,
+     D2 c, ' no-rom 1+ ,        ( Error as above )
+     22 c, swrite-vec ,  79 c, 32 c, swrite-vec 2 + ,
+   ] ;
+
+init-sector
+
+( Read sector from disc )
+( N.B. drive 00 is A. drive 01 is B. )
+
+: read-sector   ( addr\track\sector\drive... )
+   drop [ 5D c, ] drop [ 4D c, ] drop [ 55 c, ]
+   drop [ DF c, sread-vec , ] ;
+
+
+
+( Write sector to disc )
+
+: write-sector  ( addr\track\sector\disc... )
+   drop [ 5D c, ] drop [ 4D c, ] drop [ 55 c, ]
+   drop [ DF c, swrite-vec , ] ;
+
+end-voc
+sector hidden
+
+end

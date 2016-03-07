@@ -1,0 +1,17 @@
+( Advanced line editor )
+
+txtbuff @ #lines @ 64 * + variable txtlimit
+txtlimit @ variable txthead
+
+: findline  ( n...addr )  ( return addr of nth line )
+  txthead @  ( addr of first line )
+  swap 0 do
+    @ dup   ( get length of line )
+    0= if leave endif   ( last line )
+    +   ( point to next line )
+  loop
+  dup @ dup 0= if       ( past last line? )
+    swap drop endif     ( leave false flag only )
+;
+
+end

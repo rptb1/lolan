@@ -1,0 +1,52 @@
+( Graphic/text/sound extensions 2 )
+
+( SOUND ROUTINES )
+
+hex
+AC00 variable s-block        ( sound data block )
+
+create sound-reset  ( ... )  ( Reset sound )
+   C3 c, BCA7 ,
+
+
+( Place sound on queue )
+
+: sound-q   ( durat.\vol\noise\pitch\ent\env\chan... )
+   here >r                     ( remember here )
+   s-block @ (here) !         ( move here to sblock )
+   c, c, c, , c, c, ,        ( put params in sblock )
+   r> (here) !               ( restore here )
+   [ 2A c, s-block , C3 c, BCAA , ]
+;
+
+
+( Return channel status )
+: s-check   ( channel...status )
+   drop [ 7D c, CD c, BCAD , 6F c, 0026 , ]
+   push-hl
+;
+
+decimal
+
+
+( Set an envelope )
+: envelope  ( num\type\n{sc\sz\pt}\n... )
+   here >r  s-block @ (here) !  ( move here to s-block )
+   dup c, 127 and               ( nr.sections )
+   0 do swap rot                ( reverse order )
+      c, c, c, loop
+   r> (here) !                  ( reset here )
+   if [ hex ]                   ( type )
+      drop [ 2A7D , s-block , CD c, BCBF , ]
+   else
+      drop [ 2A7D , s-block , CD c, BCBC , ]
+   endif [ decimal ]
+;
+
+end-voc
+extension hidden
+
+( Keep extensions in core )
+last fence !
+
+12 emit vlist end

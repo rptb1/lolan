@@ -1,0 +1,14 @@
+( Fast character system )
+hex
+
+: (fchar)   ( y\x\char-address ... )
+   pop-hl [ E5 c, ] pop-hl [ 45 c, ] pop-hl [ 4D c, E1 c, ]
+   [ 050D ,      ( convert to logical coords )
+     E5 c, CB c, 20 c, 69 c, 26 c, 00 c, E5 c, D1 c, 29 c,
+     29 c, 19 c, 29 c, 29 c, 29 c, 29 c, 11 c, 00 c, C0 c,
+     19 c, 48 c, 06 c, 00 c, 09 c, D1 c, 06 c, 08 c, E5 c,
+     1A c, 77 c, 23 c, 13 c, 1A c, 77 c, 13 c, E1 c, C5 c,
+     01 c, 00 c, 08 c, 09 c, C1 c, 10 c, EF c, ] ;
+
+decimal
+end

@@ -1,0 +1,124 @@
+( LOLAN core routines, second batch )
+
+( <count> <limit> DO ... LOOP ) 
+hex
+: do                     ( move count and limit ) 
+    compile drop EB c, compile drop D5E5 ,  here 2
+; 9 status               ( 2 means <DO> ) 
+
+
+: loop      ( adds 1 to count, exit if >=limit. )
+   2 ?pairs                 ( check for <do> ) 
+   D1 c, 13 c, E1 c, E5 c,  ( pop de:inc de:pop hl:push hl ) 
+   37 c, ED c, 52 c,        ( scf: sbc hl,de ) 
+   38 c, 04 c, D5 c,        ( jr c,+4:  push de ) 
+   C3 c, ,  E1 c,           ( jp <do>:  pop hl ) 
+ ; 9 status                 ( I,C )
+
+: +loop     ( adds top number to count. exit if >=limit )
+   2 ?pairs
+   D1 c, compile drop 19 c, ( pop de: HLPOP: add hl,de )
+   E1EB , 37E5 , 52ED , 0438 , C3D5 , , E1 c,  ( as for <loop> )
+; 9 status
+
+: i      ( ...n )     ( leaves do..loop index )
+   E5E1 , compile push-hl ; 9 status   ( I,C )
+: j      ( ...n )     ( leaves outer do..loop index )
+   C1D1 , E5E1 , D5C5 , compile push-hl ; 9 status   ( I,C )
+
+( begin ... ?test while ... repeat ) 
+
+: while 
+  [compile] if drop      ( test for loop exit ) 
+  3                      ( 3 means <while> )
+; 9 status               ( I,C )
+
+: repeat 
+  3 ?pairs                     ( check for <while> ) 
+  >r                           ( keep addr of while ) 
+  0=  ifnot struct-err endif   ( czheck for <begin> ) 
+  C3 c, ,                      ( jp <begin> ) 
+  here r> !                    ( while jumps here )
+; 9 status                     ( I,C )
+
+
+( Logic )
+: and    ( n1\n2...n1 AND n2 )
+   drop [ EB c, ] drop 
+      [ 7C c, A2 c, 67 c,    ( ld a,h: and d: ld h,a ) 
+        7D c, A3 c, 6F c, ]  ( ld a,l: and e: ld l,a ) 
+      push-hl ; 
+
+: or     ( n1\n2...n1 OR n2 )
+   drop [ EB c, ] drop 
+     [ 7C c, B2 c, 67 c, 7D c, B3 c, 6F c, ] 
+     push-hl ; 
+
+: xor    ( n1\n2...n1 XOR n2 )
+   drop [ EB c, ] drop 
+     [ 7C c, AA c, 67 c, 7D c, AB c, 6F c, ] 
+     push-hl ; 
+
+( Add to address ) 
+: +!  ( n\addr... )
+   drop [ 5E c, 23 c, 56 c, E5 c, ] drop 
+   [ 19 c, EB c, E1 c, 72 c, 2B c, 73 c, ] ; 
+
+
+: allot  ( n... )             ( allot bytes at here )
+   (here) +! ;
+
+r: execute  ( addr... )         ( jump to address )
+   drop [ E9 c,
+
+: exit           ( exit word. NOT INSIDE DO .. LOOP )
+   C9 c, ; immediate
+
+: leave         ( finish DO .. LOOP at next LOOP )
+   E1 c, D1 c, E5 c, E5 c, ; immediate  ( limit=index )
+
+: key         ( wait for key )  ( ... key )
+   [ CD c, BB06 , 6F c, AF c, 67 c, ] push-hl ;
+
+
+
+: variable ( varname )  ( value... )  ( create a variable )
+   create                ( newvar )
+   21 c, here 0 ,        ( ld hl,word
+   compile push-hl C9 c, ( push, ret )
+   here swap !  , ;      ( word: defw <value> )
+
+: constant ( name ) ( value... )  ( create a constant )
+   create smudge
+   21 c, , C3 c, ' push-hl 1+ ,
+   smudge ;
+
+( Literal Strings )
+
+: "    ( inline literal string )
+   CD c, here 0 ,        ( call to end of string )
+   22 word               ( text up to <"> )
+   strlen 1+ allot drop  ( compile string with 0 )
+   here swap !           ( above calls here )
+   E1 c, compile push-hl ( pop hl=string: PUSH )
+; 9 status               ( I,C )
+
+decimal
+
+( Character constants )
+
+: \    ( inline character constant )
+   92 word c@            ( up to next \. Get first char )
+   [compile] literal     ( compile/push )
+; immediate              ( I )
+
+
+( Print stack )
+: .s     ( ... )  ( No effect on stack )
+   depth ?dup ifnot drop endif   ( induce error )
+   1+ 1 do
+      stktop @ i 2* - @         ( get stack entry )
+      . \  \ emit                  ( print number )
+   loop cr ;
+
+2 load> core.2

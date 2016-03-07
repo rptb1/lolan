@@ -1,0 +1,111 @@
+( TRON LIGHT BIKES )
+
+( v1.0 )
+
+vocab tron
+
+0 variable x1  0 variable y1
+0 variable x2  0 variable y2
+0 variable dx1 0 variable dy1
+0 variable dx2 0 variable dy2
+0 variable which?
+0 variable score1
+0 variable score2
+
+
+: clear-keys
+   begin ?key 0= until ;
+
+
+: setup  ( ... )  ( Initial set up )
+   1 mode
+   26 26 1 ink  22 22 2 ink  18 18 3 ink
+   1 0 1 0 0 1 envelope   ( long duration )
+   1 1 200 -1 20 129 envelope
+   2 0 0 15 1 15 -1 15 2 envelope
+;
+
+
+: draw-border ( ... )  ( Draw border around screen )
+   1 gpen
+   0 0 move-to
+   0 639 draw  399 0 draw  0 -639 draw  -399 0 draw
+;
+
+
+: initialise  ( ... )  ( Set up screen etc for play )
+   1 mode
+   draw-border
+   200 dup y1 ! y2 !
+   219 x1 ! 420 x2 !
+   2 dx1 ! -2 dx2 !
+   0 dup dy1 ! dy2 !
+   -32768 14 0 2000 1 1 161 sound-q
+   -32768 14 0 2001 1 1 140 sound-q
+;
+
+
+: move1   ( ...ok )  ( Move player 1 )
+   69 inkey 67 inkey - 2*   ( y direction )
+   ?dup if dy1 ! 0 dx1 ! endif
+   63 inkey 62 inkey - 2*   ( x direction )
+   ?dup if dx1 ! 0 dy1 ! endif
+   dy1 @ y1 +!  dx1 @ x1 +!  ( move coords )
+   y1 @ x1 @ 2dup test-at >r  ( hit? )
+   1 gpen  plot-at r>         ( draw bike )
+   if 1 else 0 endif
+;
+
+
+: move2   ( ...ok )  ( Move player 2 )
+   20 inkey 10 inkey - 2*
+   ?dup if dy2 ! 0 dx2 ! endif
+   14 inkey  5 inkey - 2*
+   ?dup if dx2 ! 0 dy2 ! endif
+   dy2 @ y2 +!  dx2 @ x2 +!
+   y2 @ x2 @ 2dup test-at >r  ( hit? )
+   2 gpen  plot-at r>         ( draw bike )
+   if 2 else 0 endif
+;
+
+
+: play  ( ... )    ( Main play loop )
+   initialise
+   begin
+      ?escape
+      move1 move2 or dup which? !
+   until
+   0 0 20 0 0 2 135 sound-q
+;
+
+
+: display-scores  ( ... )  ( <<< )
+   1 mode
+   5 5 locate ." Player 1:"
+   score1 @ . tab
+   ." Player 2:"
+   score2 @ . cr cr
+   ."    Q         7"  cr
+   ."   X C       2 3" cr
+   ."    A         4"  cr
+   cr cr
+   ." Press ENTER to clear scores," cr
+  ." any other key to play."
+   key 13 = if 0 dup score1 ! score2 ! endif
+;
+
+
+: play-tron  ( ...! )  ( Play the game! )
+   setup
+   begin
+      display-scores
+      play
+      which? @ dup
+      1 = if 1 score2 +! endif
+      2 = if 1 score1 +! endif
+   again
+;
+
+
+end-voc
+end

@@ -1,0 +1,129 @@
+( LOLAN ASSEMBLER )
+
+decimal
+: bin   ( ... )  ( Convert base to binary )
+   2 base ! ;
+
+( Assembler error )
+: reg-err   ( ... )
+   ." *** ASM ERROR. Bad register. ***" cr
+   abort ;
+
+: ?bit      ( n...n )  ( Check bit number )
+   dup 7 u> if
+     ." *** ASM ERROR. Bad bit number. ***" cr
+     abort endif ;
+
+( String case-type structure )
+: dupstr=      ( s1\s2...s1\f )  ( Preserving str= )
+   over str= ;
+
+( str1 str2 cs= <iftrue part> casex )
+: cs=
+   compile dupstr=       ( compare strings )
+   [compile] if
+   compile drop          ( drops if true )
+; 9 status               ( I,C )
+
+: casex
+   [compile] exit  [compile] endif ; 9 status  ( I,C )
+
+( Registers )
+
+( convert string s to single register  r or false )
+: single-reg   ( s...r\tf or s...s\ff )
+   " a" cs=  7 -1  casex
+   " b" cs=  0 -1  casex
+   " c" cs=  1 -1  casex
+   " d" cs=  2 -1  casex
+   " e" cs=  3 -1  casex
+   " h" cs=  4 -1  casex
+   " l" cs=  5 -1  casex
+   0
+;
+
+( As above for double register )
+: double-reg  ( s...r\tf or s...s\ff )
+   " bc" cs=  0 -1 casex
+   " de" cs=  1 -1 casex
+   " hl" cs=  2 -1 casex
+   " sp" cs=  3 -1 casex
+   " af" cs=  3 -1 casex
+   " ix" cs=  2 -1 casex
+   " iy" cs=  2 -1 casex
+   0
+;
+
+( As above for conditions )
+: condition   ( s...c\tf or s...s\ff )
+   " nz" cs=  0 -1 casex
+   " z"  cs=  1 -1 casex
+   " nc" cs=  2 -1 casex
+   " c"  cs=  3 -1 casex
+   " po" cs=  4 -1 casex
+   " pe" cs=  5 -1 casex
+   " p"  cs=  6 -1 casex
+   " m"  cs=  7 -1 casex
+   0
+;
+
+
+( Assembler words )
+hex
+
+: adc_a,
+   20 word
+   single-reg if 88 or c, exit endif
+   " #"     cs=  CE c, c, casex
+   " (hl)"  cs=  8E c, casex
+   " (ix+#)" cs=  8EDD , c, casex
+   " (iy+#)" cs=  8EFD , c, casex
+   reg-err ;
+
+: adc_hl,
+   20 word
+   double-reg if
+      ED c, 4A c,  4 << or c, else
+      reg-err endif ;
+
+: add_a,
+   20 word
+   single-reg if 80 or c, exit endif
+   " #"     cs= C6 c, c, casex
+   " (hl)"  cs= 86 c, casex
+   " (ix+#)" cs= 86DD , c, casex
+   " (iy+#)" cs= 86FD , c, casex
+   reg-err ;
+
+: add_hl,
+   20 word
+   double-reg if
+      4 << 09 or c, else
+      reg-err endif ;
+
+: add_ix,
+   20 word
+   double-reg if
+      DD c, 4 << 09 c, else
+      reg-err endif ;
+
+: add_iy,
+   20 word
+   double-reg if
+      FD c, 4 << 09 c, else
+      reg-err endif ;
+
+: and_a,
+   20 word
+   single-reg if A0 or c, exit endif
+   " #"     cs= E6 c, c, casex
+   " (hl)"  cs= A6 c, casex
+   " (ix+#)" cs= A6DD , c, casex
+   " (iy+#)" cs= A6FD , c, casex
+   reg-err ;
+
+: bit_#,
+   20 word
+   " (hl)"  cs= CB c, ?bit 3 << 46 or c, casex
+   " (ix+#)" cs= CBDD , c, ?bit 3 << 46 or c, casex
+   " (iy+#)" cs= CBFD , 

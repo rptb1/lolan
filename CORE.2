@@ -1,0 +1,114 @@
+( LOLAN core routines, third batch )
+
+( Read a key from keyboard )
+
+hex
+: ?key    ( ...char )   ( leaves 0 if no key pressed )
+   [ 26 c, 00 c, CD c, BB09 , 6F c, 38 c, 2 c, AF c, 6F c, ]
+   push-hl ;
+
+
+: inkey   ( keynum ... f )
+   drop [ 7D c, CD c, BB1E , 21 c, 0 ,
+   28 c, 3 , 21 c, -1 , ] push-hl ;
+
+( Block move )
+: lddr    ( from\to\length ... )  ( move memory < )
+   drop [ E5 c, C1 c, ] drop [ EB c, ] drop
+   [ B8ED , ] ;
+
+
+: ldir   ( from\to\length ... )   ( move memory > )
+   drop [ E5 c, C1 c, ] drop [ EB c, ] drop
+   [ B0ED , ] ;
+
+
+( <builds ... does> ... )
+
+: cfa   ( lfa...cfa )    ( convert link field to code addr )
+   2+                    ( step past link to name )
+   strlen drop           ( find end of name )
+   2+ ;                  ( end of name +2 )
+
+
+: (does>)  ( code... ) ( point <builds definition at code )
+   last cfa 4 +      ( point to jp instruction )
+   ! ;               ( direct at does> )
+
+: <builds   ( ... )  ( Create entry which executes does> )
+   create            ( new entry )
+   21 c, here 5 + ,  ( ld hl,data: )
+   C3 c, 0 ,         ( jp does>   to be filled )
+  ;                  ( data: equ here )
+
+: does>   ( point the new word at the following code )
+   here 0A + [compile] literal   ( pointer to code )
+   compile (does>)               ( ..to be placed in <builds )
+   C9 c,                         ( return from <building )
+   ( Start of does> code. )
+   compile push-hl               ( push the data address )
+  ; 9 status                     ( I,C )
+
+
+( Execution vectors )
+hex
+
+: novec   ." ** ERROR. Vector unassigned. **"
+   cr abort ;
+
+( assign <vector word> to-do <another word> )
+
+: assign  ( vector word )   ( ...vec-addr )
+   [compile] ' 1+     ( find code of word )
+   dup c@ C3 = ifnot         ( is it a vector word? )
+     ." ** ERROR. Not a vector word. **"
+     cr abort
+   endif
+   1+ ;                      ( leave addr on stack )
+
+
+: to-do   ( word )  ( addr... )  ( put cfa of word at addr )
+   [compile] ' 1+ swap ! ;
+
+( Create new execution vector )
+( exvec: <new name for vectored word> )
+
+: exvec:  create C3 c, ' novec 1+ , ;
+
+
+( Data structures )
+: array ( name )   ( n... )   ( Create array of n elements )
+   <builds  2* allot
+    does>   drop [ EB c, ] drop
+       [ 1929 , ] push-hl ;       ( use as <element> <name> )
+decimal
+
+( Vocabulary segmentation )
+
+: vocab ( name ) ( ...sys\\ )  ( Start vocabulary )
+   <builds 16 status
+   last , here 0 , -1       ( -1 is vocab )
+    does> dup @ swap 2+ @ ;
+
+: end-voc  ( sys\\... )  ( End vocabulary )
+   -1 ?pairs
+   last swap ! ;
+
+( Hide vocab if f is true, else show vocab )
+: displayed  ( end-addr\first\f... )
+   >r begin
+      dup cfa 1- dup c@     ( get status )
+      r@ if    4 or         ( hide )
+         else  251 and      ( show )
+         endif  swap c!     ( store status )
+      @ 2dup =              ( until end-addr )
+   until drop drop r> drop
+;
+
+: hidden  ( end-addr\first... ) ( hide words )
+  -1 displayed ;
+
+: shown  ( end-addr\first... ) ( show words )
+   0 displayed ;
+
+3 load> core.3

@@ -1,0 +1,81 @@
+( Graphics Demonstration )
+
+: case:   ( Positional case )
+   <builds smudge ]
+   does>   swap 3 * + 1+ @ execute ;
+
+: N 6 ;
+: H0 400 ;
+
+0 variable h
+0 variable x0
+0 variable y0
+0 variable x
+0 variable y
+
+: xyline ( ... )        ( draw line to x,y )
+   x @ y @ draw-to ;
+
+
+: x+      ( ... )
+   h @     x +!   xyline ;
+: y+      ( ... )
+   h @     y +!   xyline ;
+: x-      ( ... )
+   h @  negate  x +!  xyline ;
+: y-      ( ... )
+   h @  negate  y +!  xyline ;
+
+exvec: draw-sides
+
+: 3sides   ( n1\n2 ... n1 )  ( draw 3 sides of square )
+   ?escape
+   over dup
+   if   1- swap draw-sides
+   else  drop drop
+   endif ;
+
+
+: or1 ( n... )  ( the 4 possible figures )
+   3 3sides x-   0 3sides y-
+   0 3sides x+   1 3sides drop ;
+: or2 ( n... )
+   2 3sides y+   1 3sides x+
+   1 3sides y-   0 3sides drop ;
+: or3 ( n... )
+   1 3sides x+   2 3sides y+
+   2 3sides x-   3 3sides drop ;
+: or4 ( n... )
+   0 3sides y-   3 3sides x-
+   3 3sides y+   2 3sides drop ;
+
+
+case: (sides)  ( n1\n2 ... ) ( draw one of the four )
+ or1 or2 or3 or4 ;
+
+
+assign draw-sides to-do (sides)
+
+: initialise ( ... )
+   H0  dup h !
+   2/ dup x0 ! y0 !
+   graphic-reset
+   0 100 g-origin
+;
+
+
+: xyset ( ... )
+   h @ 2/ dup h !
+   2/ dup x0 +!  y0 +!
+   x0 @ y0 @  2dup  y ! x !
+   move-to ;
+
+: plot-it ( ... )
+   initialise
+   0 begin  dup gpen
+      1+ xyset   0 3sides
+      dup  N = until
+   drop
+   begin ?escape again ;
+
+end

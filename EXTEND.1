@@ -1,0 +1,91 @@
+( Graphic/text/sound extensions 2 )
+
+( GRAPHICS ROUTINES )
+
+hex
+
+create graphic-reset      ( ... )  ( Reset graphics )
+  CD c, BBBA ,
+  C3 c, BBFF ,
+
+: move-to     ( y\x... )  ( Move to absolute position x,y )
+   drop [ EB c, ] drop [ C3 c, BBC0 , ] ;
+
+
+: move         ( dy\dx... )  ( Move relative to current pos )
+   drop [ EB c, ] drop [ C3 c, BBC3 , ] ;
+
+
+: ?g-cursor   ( ... y\x )  ( Returns position of cursor )
+   [ CD c, BBC6 , ] push-hl [ EB c, ] push-hl ;
+
+
+: g-origin     ( y\x... )  ( Set graphics origin )
+   drop [ EB c, ] drop [ C3 c, BBC9 , ] ;
+
+
+: g-window      ( y1\y2\x1\x2... )  ( Set graphics window )
+   drop [ EB c, ] drop [ CD c, BBCF , ]
+   drop [ EB c, ] drop [ C3 c, BBD2 , ] ;
+
+
+create clg  ( ... )   ( Clear graphics window )
+  C3 c, BBDB ,
+
+
+: gpen   ( ink... )  ( Set graphics pen )
+   drop [ 7D c, C3 c, BBDE , ] ;
+
+
+: gpaper ( ink... )  ( Set graphics paper )
+   drop [ 7D c, C3 c, BBE4 , ] ;
+
+
+: plot-at   ( y\x... )   ( Plot point at x,y )
+   drop [ EB c, ] drop [ C3 c, BBEA , ] ;
+
+
+: plot     ( dy\dx... )  ( Plot point relative )
+   drop [ EB c, ] drop [ C3 c, BBED , ] ;
+
+
+: test-at   ( y\x...ink )  ( Test point at x,y )
+   drop [ EB c, ] drop [ CD c, BBF0 , ]
+   [ 6F c, 0026 , ] push-hl ;
+
+
+: test   ( dy\dx... )  ( Test point relative )
+   drop [ EB c, ] drop [ CD c, BBF3 , ]
+   [ 6F c, 0026 , ] push-hl ;
+
+
+: draw-to  ( y\x... )  ( Draw line to x,y )
+   drop [ EB c, ] drop [ C3 c, BBF6 , ] ;
+
+
+: draw   ( dy\dx... )  ( Draw line relative )
+   drop [ EB c, ] drop [ C3 c, BBF9 , ] ;
+
+
+: gchar   ( c... )   ( Put char at gcursor )
+   drop [ 7D c, C3 c, BBFC , ] ;
+
+
+: mode   ( mode... )  ( Set screen mode )
+   drop [ 7D c, C3 c, BC0E , ] ;
+
+
+: ink  ( col1\col2\num... )  ( Set ink num to col1,col2 )
+   drop [ 7D c, ] drop [ 45 c, ] drop [ 4D c,
+      C3 c, BC32 , ] ;
+
+
+: border ( c... )  ( Set border to c )
+   drop [ C1E5 , C3 c, BC38 , ] ;
+
+
+: flashspeed  ( t1\t2... )  ( Set inks to flash at t1,t2 )
+   drop [ EB c, ] drop [ 63 c, C3 c, BC3E , ] ;
+
+decimal
+2 load> extend.2

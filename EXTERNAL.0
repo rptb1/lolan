@@ -1,0 +1,103 @@
+( External commands )
+
+vocab externals
+
+decimal
+( External command not found )
+: ext-err  ( ! )
+   ." *** ERROR. External command not found. ***" cr
+   abort ;
+
+hex
+( Execute command at name addr )
+
+: extcmd   ( param\nr.param\name addr... )
+   drop [ CD c, BCD4 ,        ( find command )
+   D2 c, ' ext-err 1+ ,       ( command not found )
+   E5 c, ]                    ( remember routine )
+   drop [ 7D c, ]             ( get nr.params )
+   drop [ E5 c, E1DD , E1 c,  ( param addr. restore )
+   CD c, 001B , ]             ( FAR PCHL to routine )
+;
+
+decimal
+
+( Convert string to upper case )
+
+: strupper  ( string... )
+   begin
+      dup c@ dup while  ( end of string? )
+      97 - dup 26 u< if ( lower case? )
+         32 - endif     ( convert )
+      97 + over c!      ( restore char )
+      1+                ( next char )
+   repeat
+   drop drop
+;
+
+hex
+( Build external command finder )
+  ( builds:  <command> ( params\nr.params... )
+
+: external ( command )
+   <builds
+      20 word dup strupper       ( compile command )
+      strlen allot drop
+      here 1- dup c@             ( get last char )
+      80 or swap c!              ( set bit 7 )
+   does>
+      extcmd                     ( do command )
+;
+
+decimal
+
+
+( Execution mode external command handler )
+
+3 array extvar          ( external command handler variables )
+( 0 is address for string handler )
+( 1 is depth of stack at | )
+( 2 is address of command to call )
+
+: |  ( name )  ( ... )  ( set up pointers for || )
+   [compile] ' 1+ 2 extvar !    ( Save addr of mc )
+   here 80 + 0 extvar !         ( Set up string position )
+   depth 1 extvar !             ( Save depth now )
+;
+
+: |"   ( ...addr )     ( string for external command )
+   here >r                    ( preserve here )
+   0 extvar @ (here) !        ( point here at string pos )
+   34 word strlen dup allot   ( copy string into position )
+   c, 0 extvar @ ,            ( put len and addr of str )
+   here 0 extvar !            ( shift string pointer up )
+   r> (here) !                ( restore here )
+;
+
+: ||   ( \\params... )      ( do command from | )
+   2 extvar @ ifnot         ( check for | )
+      ." *** ERROR. || without |. ***" cr
+      abort endif
+   !csp csp @               ( parameter addr )
+   depth 1 extvar @ - 1-    ( calc nr.params )
+   2 extvar @ execute       ( do the command )
+   begin                    ( restore stack )
+     depth 1 extvar @ - while 
+     drop
+   repeat
+   0 2 extvar !             ( clear flag )
+;
+
+( Disc external commands. )
+external dir  dir   ( Disc directory )
+external cpm  cpm   ( Enter CP/M )
+external disc disc  ( Set to disc )
+external tape tape  ( Set to tape )
+external user user  ( Set disc user area )
+external era  era  ( Erase disc files )
+external ren  ren  ( Rename disc files )
+
+end-voc
+externals hidden
+decimal
+end
